@@ -5,7 +5,7 @@ const SemanticReleaseError = require('@semantic-release/error');
 
 const CONTENT_TYPE = 'application/vnd.docker.distribution.manifest.v2+json';
 
-const getVersionTags = function (version, isSemver) {
+const getVersionTags = function (version, isSemver, prefix) {
   const major = semver.major(version);
   const minor = semver.minor(version);
   const patch = semver.patch(version);
@@ -13,9 +13,16 @@ const getVersionTags = function (version, isSemver) {
     ? `-${semver.prerelease(version).join('.')}`
     : '';
 
+  // If a prefix is provided only return the full version
+  if (prefix) {
+    return [`${prefix}-${major}.${minor}.${patch}${prerelease}`];
+  }
+
+  // If semver is true, only return the full version
   if (isSemver) {
     return [`${major}.${minor}.${patch}${prerelease}`];
   }
+  // Otherwise return all possible versions
   return [
     `${major}.${minor}.${patch}${prerelease}`,
     `${major}.${minor}${prerelease}`,
@@ -76,7 +83,7 @@ module.exports = async (pluginConfig, context) => {
 
   const url = `https://${CI_REGISTRY}/v2/${CI_PROJECT_PATH}/manifests/`;
   const manifest = await getManifest(`${url}/${commit}`, Authorization);
-  const nextVersions = getVersionTags(version, pluginConfig.semver ?? false);
+  const nextVersions = getVersionTags(version, pluginConfig.semver ?? false, pluginConfig.prefix ?? false);
   nextVersions.forEach(async (item) => {
     // eslint-disable-next-line no-unused-vars
     const result = await pushTag(`${url}/${item}`, Authorization, manifest);

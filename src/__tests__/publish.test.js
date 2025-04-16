@@ -115,4 +115,39 @@ describe('publish module', () => {
     expect(putCalls.length).toBe(1);
     expect(putCalls[0][0]).toMatch(/\/manifests\/\/1\.2\.3$/);
   });
+
+  test('should push tags with prefix when prefix is provided', async () => {
+    await publish({ semver: false, prefix: 'app' }, mockContext);
+    
+    // Wait for all microtasks to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Get all calls to got
+    const calls = got.mock.calls;
+    
+    // Find the PUT calls
+    const putCalls = calls.filter(call => call[1] && call[1].method === 'PUT');
+    
+    // Check that the expected tag URLs were used with prefix
+    expect(putCalls.some(call => call[0].includes('/manifests//app-1.2.3'))).toBe(true);
+    expect(putCalls.some(call => call[0].includes('/manifests//app-1.2'))).toBe(true);
+    expect(putCalls.some(call => call[0].includes('/manifests//app-1'))).toBe(true);
+  });
+
+  test('should push only one tag with prefix when semver is true', async () => {
+    await publish({ semver: true, prefix: 'app' }, mockContext);
+    
+    // Wait for all microtasks to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Get all calls to got
+    const calls = got.mock.calls;
+    
+    // Find the PUT calls
+    const putCalls = calls.filter(call => call[1] && call[1].method === 'PUT');
+    
+    // Should be exactly one PUT call with prefixed version
+    expect(putCalls.length).toBe(1);
+    expect(putCalls[0][0]).toMatch(/\/manifests\/\/app-1\.2\.3$/);
+  });
 });
